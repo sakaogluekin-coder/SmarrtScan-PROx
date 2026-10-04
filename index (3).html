@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SmartScan Pro</title>
+  
+  <!-- PWA & Mobil Uygulama Başlık Ayarları -->
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SmartScan">
+  
+  <script src="https://unpkg.com/html5-qrcode@2.3.4/html5-qrcode.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background: #0f172a;
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      justify-content: space-between;
+      padding: 12px;
+      gap: 10px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      background: rgba(30, 41, 59, 0.8);
+      border-radius: 12px;
+      backdrop-filter: blur(8px);
+    }
+
+    .title {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+
+    .header-btns {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-pwa {
+      background: #22c55e;
+      color: #000;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.75rem;
+      cursor: pointer;
+      display: none; /* Otomatik olarak sadece destekleyen mobil cihazlarda görünecek */
+    }
+
+    .btn-coffee {
+      background: #38bdf8;
+      color: #0f172a;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.8rem;
+      cursor: pointer;
+      text-decoration: none;
+    }
+
+    .camera-box {
+      position: relative;
+      width: 100%;
+      height: 38vh;
+      background: #000;
+      border-radius: 16px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    #reader {
+      width: 100%;
+      height: 100%;
+    }
+
+    #reader video {
+      object-fit: cover !important;
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    .torch-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 20;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      backdrop-filter: blur(4px);
+    }
+
+    .result-box {
+      background: rgba(30, 41, 59, 0.8);
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .result-code {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: #38bdf8;
+      word-break: break-all;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .btn {
+      flex: 1;
+      min-width: 30%;
+      padding: 8px;
+      border-radius: 8px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.8rem;
+      text-align: center;
+    }
+
+    .btn-main { background: #22c55e; color: #000; }
+    .btn-price { background: #f59e0b; color: #000; }
+    .btn-sub { background: rgba(255, 255, 255, 0.1); color: #fff; }
+
+    .history-box {
+      background: rgba(30, 41, 59, 0.5);
+      border-radius: 12px;
+      padding: 10px;
+      max-height: 110px;
+      overflow-y: auto;
+    }
+
+    .history-title {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .history-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .history-item {
+      font-size: 0.8rem;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 6px 10px;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .history-item span {
+      cursor: pointer;
+      color: #38bdf8;
+    }
+
+    .ad-box {
+      height: 50px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px dashed rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="title">SmartScan Pro</div>
+    <div class="header-btns">
+      <button class="btn-pwa" id="btn-install" onclick="installApp()">📲 Uygulamayı Yükle</button>
+      <button class="btn-coffee" onclick="donateAlert()">☕ Kahve Ismarla</button>
+    </div>
+  </header>
+
+  <div class="camera-box">
+    <button class="torch-btn" id="btn-torch" onclick="toggleTorch()">🔦 Flaş Aç/Kapat</button>
+    <div id="reader"></div>
+  </div>
+
+  <div class="result-box">
+    <div style="font-size:0.75rem; color:#94a3b8;">SON OKUNAN BARKOD:</div>
+    <div class="result-code" id="code-text">Barkod hizalayın...</div>
+    
+    <div class="actions">
+      <button class="btn btn-main" id="btn-search">Google'da Ara</button>
+      <button class="btn btn-price" id="btn-akakce">Fiyat Karşılaştır 🏷️</button>
+      <button class="btn btn-sub" id="btn-copy">Kopyala</button>
+    </div>
+  </div>
+
+  <div class="history-box">
+    <div class="history-title">
+      <span>TARAMA GEÇMİŞİ</span>
+      <span style="cursor:pointer; color:#ef4444;" onclick="clearHistory()">Temizle</span>
+    </div>
+    <ul class="history-list" id="history-list"></ul>
+  </div>
+
+  <div class="ad-box">
+    Reklam Alanı (320x50)
+  </div>
+
+  <script>
+    let lastCode = "";
+    let html5QrCode;
+    let isTorchOn = false;
+    let deferredPrompt;
+    let history = JSON.parse(localStorage.getItem("scanHistory") || "[]");
+
+    // PWA Yükleme Yakalayıcı
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById('btn-install').style.display = 'block';
+    });
+
+    function installApp() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            document.getElementById('btn-install').style.display = 'none';
+          }
+          deferredPrompt = null;
+        });
+      }
+    }
+
+    // Bip Sesi (Web Audio API)
+    function playBeep() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = 1000;
+        gain.gain.value = 0.1;
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.15);
+      } catch (e) {}
+    }
+
+    function onScanSuccess(decodedText) {
+      if (lastCode === decodedText) return;
+      lastCode = decodedText;
+
+      playBeep();
+
+      if (navigator.vibrate) {
+        navigator.vibrate(100);
+      }
+
+      document.getElementById("code-text").innerText = decodedText;
+      addHistory(decodedText);
+    }
+
+    function addHistory(code) {
+      if (!history.includes(code)) {
+        history.unshift(code);
+        if (history.length > 10) history.pop();
+        localStorage.setItem("scanHistory", JSON.stringify(history));
+        renderHistory();
+      }
+    }
+
+    function renderHistory() {
+      const listEl = document.getElementById("history-list");
+      listEl.innerHTML = "";
+      history.forEach(code => {
+        const li = document.createElement("li");
+        li.className = "history-item";
+        li.innerHTML = `
+          <span>${code}</span>
+          <button style="background:none; border:none; color:#22c55e; cursor:pointer;" onclick="searchCode('${code}')">Ara 🔍</button>
+        `;
+        listEl.appendChild(li);
+      });
+    }
+
+    function clearHistory() {
+      history = [];
+      localStorage.removeItem("scanHistory");
+      renderHistory();
+    }
+
+    function toggleTorch() {
+      if (html5QrCode) {
+        isTorchOn = !isTorchOn;
+        html5QrCode.applyVideoConstraints({
+          advanced: [{ torch: isTorchOn }]
+        }).catch(err => {
+          alert("Flaş bu cihazda (PC/Webcam) desteklenmiyor veya aktif değil.");
+          isTorchOn = false;
+        });
+      }
+    }
+
+    function initCamera() {
+      html5QrCode = new Html5Qrcode("reader");
+
+      const config = {
+        fps: 15,
+        qrbox: { width: 260, height: 130 },
+        formatsToSupport: [
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.UPC_E,
+          Html5QrcodeSupportedFormats.QR_CODE
+        ]
+      };
+
+      html5QrCode.start(
+        { facingMode: "environment" },
+        config,
+        onScanSuccess
+      ).catch(() => {
+        html5QrCode.start(
+          { facingMode: "user" },
+          config,
+          onScanSuccess
+        ).catch(() => {
+          Html5Qrcode.getCameras().then(devices => {
+            if (devices && devices.length > 0) {
+              html5QrCode.start(devices[0].id, config, onScanSuccess);
+            } else {
+              document.getElementById("code-text").innerText = "Kamera bulunamadı.";
+            }
+          }).catch(err => {
+            document.getElementById("code-text").innerText = "Kamera erişim izni veriniz.";
+          });
+        });
+      });
+    }
+
+    function searchCode(code) {
+      window.open(`https://www.google.com/search?q=${encodeURIComponent(code)}`, '_blank');
+    }
+
+    function searchPrice(code) {
+      window.open(`https://www.google.com/search?q=${encodeURIComponent(code)}+fiyatı+site:akakce.com+OR+site:cimri.com+OR+site:trendyol.com`, '_blank');
+    }
+
+    document.getElementById("btn-search").onclick = () => {
+      if (lastCode) searchCode(lastCode);
+    };
+
+    document.getElementById("btn-akakce").onclick = () => {
+      if (lastCode) searchPrice(lastCode);
+    };
+
+    document.getElementById("btn-copy").onclick = () => {
+      if (lastCode) {
+        navigator.clipboard.writeText(lastCode);
+        alert("Kopyalandı!");
+      }
+    };
+
+    function donateAlert() {
+      alert("Kahve desteği özelliğini kendi Papara veya IBAN bağlantınla güncelleyebilirsin!");
+    }
+
+    window.onload = () => {
+      initCamera();
+      renderHistory();
+    };
+  </script>
+</body>
+</html>
