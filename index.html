@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>SmartScan Pro</title>
   
-  <!-- PWA & Mobil Uygulama Başlık Ayarları -->
   <meta name="theme-color" content="#0f172a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -61,7 +60,7 @@
       font-weight: 600;
       font-size: 0.75rem;
       cursor: pointer;
-      display: none; /* Otomatik olarak sadece destekleyen mobil cihazlarda görünecek */
+      display: none;
     }
 
     .btn-coffee {
@@ -246,7 +245,6 @@
     let deferredPrompt;
     let history = JSON.parse(localStorage.getItem("scanHistory") || "[]");
 
-    // PWA Yükleme Yakalayıcı
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
@@ -265,7 +263,6 @@
       }
     }
 
-    // Bip Sesi (Web Audio API)
     function playBeep() {
       try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -352,26 +349,29 @@
         ]
       };
 
-      html5QrCode.start(
-        { facingMode: "environment" },
-        config,
-        onScanSuccess
-      ).catch(() => {
-        html5QrCode.start(
-          { facingMode: "user" },
-          config,
-          onScanSuccess
-        ).catch(() => {
-          Html5Qrcode.getCameras().then(devices => {
-            if (devices && devices.length > 0) {
-              html5QrCode.start(devices[0].id, config, onScanSuccess);
-            } else {
-              document.getElementById("code-text").innerText = "Kamera bulunamadı.";
+      // Cihazdaki tüm kameraları tara ve bulunan İLK çalışan kamerayı anında aç
+      Html5Qrcode.getCameras().then(devices => {
+        if (devices && devices.length > 0) {
+          // Arka kamerayı seçmeye çalış, yoksa ilk kamerayı al
+          let selectedCameraId = devices[0].id;
+          for (let dev of devices) {
+            if (dev.label.toLowerCase().includes('back') || dev.label.toLowerCase().includes('environment') || dev.label.toLowerCase().includes('arka')) {
+              selectedCameraId = dev.id;
+              break;
             }
-          }).catch(err => {
-            document.getElementById("code-text").innerText = "Kamera erişim izni veriniz.";
+          }
+          
+          html5QrCode.start(selectedCameraId, config, onScanSuccess)
+          .catch(err => {
+            console.error("Kamera başlatma hatası:", err);
+            document.getElementById("code-text").innerText = "Kamera açılamadı. İzinleri kontrol edin.";
           });
-        });
+        } else {
+          document.getElementById("code-text").innerText = "Kamera bulunamadı.";
+        }
+      }).catch(err => {
+        console.error("Kamera izni hatası:", err);
+        document.getElementById("code-text").innerText = "Kamera izni veriniz.";
       });
     }
 
